@@ -102,13 +102,22 @@ module.exports = {
             if (err) return callback(err);
             if (data) {
                 // create the params necessary for the remediation
+
+                //adding to existing metadata values if they exist
+                let items = data.metadata && data.metadata.items;
+                if (items && items.length) {
+                    items.push({
+                        'key': 'enable-oslogin-2fa',
+                        'value': 'true'
+                    });
+                } else {
+                    items = [{
+                        'key': 'enable-oslogin-2fa',
+                        'value': 'true'
+                    }];
+                }
                 var body = {
-                    'items': [
-                        {
-                            'key': 'enable-oslogin-2fa',
-                            'value': 'true'
-                        }
-                    ],
+                    items,
                     'fingerprint': data.metadata.fingerprint
                 };
 

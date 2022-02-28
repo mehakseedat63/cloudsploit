@@ -93,13 +93,22 @@ module.exports = {
             if (err) return callback(err);
             if (data) {
                 // create the params necessary for the remediation
+                
+                //adding to existing metadata values if they exist
+                let items = data.metadata && data.metadata.items;
+                if (items && items.length) {
+                    items.push({
+                        'key': 'serial-port-enable',
+                        'value': 'false'
+                    });
+                } else {
+                    items = [{
+                        'key': 'serial-port-enable',
+                        'value': 'false'
+                    }];
+                }
                 var body = {
-                    'items': [
-                        {
-                            'key': 'serial-port-enable',
-                            'value': 'false'
-                        }
-                    ],
+                    items,
                     'fingerprint': data.metadata.fingerprint
                 };
 
