@@ -434,6 +434,20 @@ function remediateOrgPolicy(config, constraintName, policyType, policyValue, res
     remediatePlugin(config, method, body, baseUrl, resource, remediation_file, putCall, pluginName, callback);
 }
 
+function getResource(GoogleConfig, url, callback) {
+    authenticate(GoogleConfig).then(client => {
+        client.request({
+            url,
+        }, function(err, res) {
+            if (err) {
+                callback(err);
+            } else if (res && res.data) {
+                callback(null, res.data);
+            }
+        });
+    });
+}
+
 function remediatePlugin(config, method, body, baseUrl, resource, remediation_file, putCall, pluginName, callback) {
     makeRemediationCall(config, method, body, baseUrl, resource, function(err) {
         if (err) {
@@ -471,6 +485,7 @@ var helpers = {
     processCall: processCall,
     remediatePlugin: remediatePlugin,
     remediateOrgPolicy: remediateOrgPolicy,
+    getResource: getResource,
     PROTECTION_LEVELS: ['unspecified', 'default', 'cloudcmek', 'cloudhsm', 'external'],
 };
 

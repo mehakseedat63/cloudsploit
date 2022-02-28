@@ -10,6 +10,12 @@ module.exports = {
     link: 'https://cloud.google.com/compute/docs/instances/interacting-with-serial-console',
     recommended_action: 'Ensure the Enable Connecting to Serial Ports option is disabled for all compute instances.',
     apis: ['instances:compute:list', 'projects:get'],
+    remediation_min_version: '202202270432',
+    remediation_description: 'Connecting to Serial Ports will be disabled for all virtual machine instances.',
+    apis_remediate: ['instances:compute:list', 'projects:get'],
+    actions: {remediate:['compute.instances.setMetadata'], rollback:['compute.instances.setMetadata']},
+    permissions: {remediate: ['compute.instances.get', 'compute.instances.setMetadata'], rollback: ['compute.instances.get', 'compute.instances.setMetadata']},
+    realtime_triggers: ['compute.instances.setMetadata', 'compute.instances.insert'],
 
     run: function(cache, settings, callback) {
         var results = [];
@@ -72,6 +78,49 @@ module.exports = {
             });
         }, function() {
             callback(null, results, source);
+        });
+    },
+    remediate: function(config, cache, settings, resource, callback) {
+        var remediation_file = settings.remediation_file;
+        var pluginName = 'connectSerialPortsDisabled';
+        var baseUrl = 'https://compute.googleapis.com/compute/v1/{resource}/setMetadata';
+        var method = 'POST';
+        var putCall = this.actions.remediate;
+
+        //get the resource first because we need finger print to set metadata
+        var getUrl = `https://compute.googleapis.com/compute/v1/${resource}`;
+        helpers.getResource(config, getUrl, function(err, data) {
+            if (err) return callback(err);
+            if (data) {
+                // create the params necessary for the remediation
+                var body = {
+                    'items': [
+                        {
+                            'key': 'serial-port-enable',
+                            'value': 'false'
+                        }
+                    ],
+                    'fingerprint': data.metadata.fingerprint
+                };
+
+                // logging
+                remediation_file['pre_remediate']['actions'][pluginName][resource] = {
+                    'connectSerialPort': 'Enabled'
+                };
+
+                helpers.remediatePlugin(config, method, body, baseUrl, resource, remediation_file, putCall, pluginName, function(err, action) {
+                    if (err) return callback(err);
+                    if (action) action.action = putCall;
+
+
+                    remediation_file['post_remediate']['actions'][pluginName][resource] = action;
+                    remediation_file['remediate']['actions'][pluginName][resource] = {
+                        'Action': 'Disabled'
+                    };
+
+                    callback(null, action);
+                });
+            }
         });
     }
 };
